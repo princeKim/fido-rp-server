@@ -13,4 +13,4 @@ For more details on how to get a sample App up and running
 Contact us via email at support@daon.com. You can also see the IdentityX documentation for more information.
 
 ##License
-Apache 2.0, see [LICENSE](https://github.com/daoninc/fido-rp-server/LICENSE.md).
+Apache 2.0, see [LICENSE](https://github.com/daoninc/fido-rp-server/blob/master/LICENSE.md).
