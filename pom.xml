@@ -4,14 +4,6 @@
   <artifactId>SampleFIDOApplication</artifactId>
   <version>1.0.0</version>
   
-  <repositories>
-    <repository>
-      <id>QC</id>
-      <name>Daon repo</name>
-      <url>http://daon-eng-nexus:8081/nexus/content/repositories/QC</url>
-    </repository>
-  </repositories>
-
   	<parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -43,7 +35,7 @@
         <dependency>
 			<groupId>com.identityx</groupId>
 			<artifactId>IdentityXClientSDK</artifactId>
-			<version>1.0.0.16</version>
+			<version>1.0.0.21</version>
 		</dependency>
     </dependencies>
 
