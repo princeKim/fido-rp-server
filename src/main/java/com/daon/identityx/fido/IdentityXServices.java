@@ -16,6 +16,9 @@
 
 package com.daon.identityx.fido;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -109,11 +112,12 @@ public class IdentityXServices implements IIdentityXServices {
 
 	@PostConstruct
 	public void connectToIdentityXServer() {
-		try {
+		try (InputStream keyStore = new FileInputStream(new File(this.getKeystoreLocation()));
+				InputStream credenitalsProperties = new FileInputStream(new File(this.getCredentialPropertiesLocation()))){
 			EncryptedKeyPropFileCredentialsProvider provider = new EncryptedKeyPropFileCredentialsProvider(
-					this.getKeystoreLocation(),
+					keyStore,
 					this.getKeystorePassword(),
-					this.getCredentialPropertiesLocation(),
+					credenitalsProperties,
 					this.getKeystoreKeyAlias(),
 					this.getKeystoreKeyPassword());
 			tenantRepoFactory = new TenantRepoFactory(provider);
@@ -243,9 +247,8 @@ public class IdentityXServices implements IIdentityXServices {
 				logger.error(error);
 				throw new RuntimeException(error);
 			}
-			UserRepository userRepo = this.getTenantRepoFactory().getUserRepo();
-			String userHref = userRepo.getBaseUrl() + userRepo.getResourcePath() + "/" + fidoId;
-			if (!authenticator.getUser().getHref().equals(userHref)) {
+			String userId = this.getIdFromHref(authenticator.getUser().getHref());
+			if (!fidoId.equals(userId)) {
 				String error = "The authenticator specified does not belong to the IdentityX user with ID: " + fidoId;
 				logger.error(error);
 				throw new RuntimeException(error);
@@ -479,9 +482,10 @@ public class IdentityXServices implements IIdentityXServices {
 				throw new RuntimeException(error);
 			}
 			Registration registration = this.getRegistrationFromHref(regChallenge.getRegistration().getHref());
-			String userHref = this.getHrefFromUserId(idxId);
-			if (!userHref.equals(registration.getUser().getHref())){
-				String error = "The registration response does not belong to the IdentityX user with ID: " + idxId;
+			String userId = this.getIdFromHref(registration.getUser().getHref());
+			if (!idxId.equals(userId)){
+				String error = "The registration response does not belong to the IdentityX user with ID: " + idxId
+							+ " Expecting: " + idxId + " retrieved: " + userId;
 				logger.error(error);
 				throw new RuntimeException(error);
 			}
@@ -590,8 +594,9 @@ public class IdentityXServices implements IIdentityXServices {
 		try {
 			AuthenticatorRepository authRepo = this.getTenantRepoFactory().getAuthenticatorRepo();
 			Authenticator authenticator = authRepo.getById(id);
-			String userHref = this.getHrefFromUserId(idxId);
-			if (!userHref.equals(authenticator.getUser().getHref())) {
+			
+			String userId = this.getIdFromHref(authenticator.getUser().getHref());
+			if (!idxId.equals(userId)) {
 				String error = "The authenticator requested does not belong to the IdentityX user with ID: " + idxId;
 				logger.error(error);
 				throw new RuntimeException(error);
@@ -810,6 +815,22 @@ public class IdentityXServices implements IIdentityXServices {
 	protected String getHrefFromUserId(String id) {
 		UserRepository userRepo = this.getTenantRepoFactory().getUserRepo();
 		return userRepo.getBaseUrl() + userRepo.getResourcePath() + "/" + id;
+	}
+
+	/***
+	 * Converts an HREF to an Id 
+	 * 
+	 * @param id
+	 * @return
+	 */
+	protected String getIdFromHref(String href) {
+		
+		int lastIndex = href.lastIndexOf("/");
+		if (lastIndex < 0 || lastIndex > href.length()) {
+			return "";
+		} else {
+			return href.substring(lastIndex+1);
+		}
 	}
 
 	/***
