@@ -761,6 +761,11 @@ public class SimpleController {
 
 	/***
 	 * Generate a random salt value for each account
+	 * It would be better to use the strong instance of SecureRandom
+	 * but on many Linux systems, it may take time for the /dev/random
+	 * to contain the necessary number of bits required.  As this is a 
+	 * demonstration, the algorithm has been changed to SHA1PRNG which
+	 * is fast but not as secure.
 	 * 
 	 * @return
 	 */
@@ -769,7 +774,8 @@ public class SimpleController {
 		try {
 			byte[] data = new byte[32];
 			if (random == null) {
-				random = SecureRandom.getInstanceStrong();
+				random = SecureRandom.getInstance("SHA1PRNG");
+				//random = SecureRandom.getInstanceStrong();  <- More secure
 			}
 			random.nextBytes(data);
 			return data;
