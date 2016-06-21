@@ -35,7 +35,7 @@
         <dependency>
 			<groupId>com.identityx</groupId>
 			<artifactId>IdentityXClientSDK</artifactId>
-			<version>1.0.0.37</version>
+			<version>1.0.0.21</version>
 		</dependency>
     </dependencies>
 
