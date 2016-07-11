@@ -31,9 +31,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.PropertySources;
 import org.springframework.stereotype.Service;
 
 import com.daon.identityx.controller.model.AuthenticatorInfo;
+import com.daon.identityx.controller.model.PolicyInfo;
 import com.daon.identityx.exception.ProcessingException;
 import com.daon.identityx.rest.model.def.AuthenticationRequestStatusEnum;
 import com.daon.identityx.rest.model.def.AuthenticatorStatusEnum;
@@ -46,6 +48,8 @@ import com.daon.identityx.rest.model.pojo.Policy;
 import com.daon.identityx.rest.model.pojo.Registration;
 import com.daon.identityx.rest.model.pojo.RegistrationChallenge;
 import com.daon.identityx.rest.model.pojo.User;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.identityx.clientSDK.TenantRepoFactory;
 import com.identityx.clientSDK.collections.ApplicationCollection;
 import com.identityx.clientSDK.collections.AuthenticatorCollection;
@@ -75,7 +79,10 @@ import com.identityx.clientSDK.repositories.UserRepository;
  *
  */
 @Service
-@PropertySource("classpath:fido_config.properties")
+@PropertySources({
+	@PropertySource("classpath:fido_config.properties"),
+	@PropertySource(value="file:fido_config.properties", ignoreResourceNotFound=true)
+})
 public class IdentityXServices implements IIdentityXServices {
 
 	private static final Logger logger = LoggerFactory.getLogger(IdentityXServices.class);
@@ -103,6 +110,7 @@ public class IdentityXServices implements IIdentityXServices {
 	private Application application;
 	private Policy regPolicy;
 	private Policy authPolicy;
+	private ObjectMapper objectMapper = new ObjectMapper();
 
 	private final Map<String, AuthenticatorType> authenticatorTypesCache = new Hashtable<>();
 	
@@ -611,6 +619,17 @@ public class IdentityXServices implements IIdentityXServices {
 	}
 
 
+	@Override
+	public PolicyInfo getRegistrationPolicyInfo() {
+		return this.convert(getRegPolicy());
+	}
+
+	@Override
+	public PolicyInfo getAuthenticationPolicyInfo() {
+		return this.convert(getAuthPolicy());
+	}
+
+
 	/***
 	 * Find the application within IdentityX where the is retrieved from the "applicationId" property.
 	 * Uses an ApplicationRepositity and performs a "list" operation.
@@ -916,6 +935,23 @@ public class IdentityXServices implements IIdentityXServices {
 		authenticatorInfo.setStatus(authenticator.getStatus().name());
 		authenticatorInfo.setAaid(authenticator.getAuthenticatorType().getAaid());
 		return authenticatorInfo;
+	}
+
+	protected PolicyInfo convert(Policy policy) {
+
+		PolicyInfo policyInfo = new PolicyInfo();
+		policyInfo.setId(policy.getId());
+		policyInfo.setType(policy.getType().toString());
+		if (policy.getFidoPolicy() != null) {
+			try {
+				policyInfo.setPolicy(objectMapper.writeValueAsString(policy.getFidoPolicy()));
+			} catch (JsonProcessingException e) {
+				String error = "An exception occurred while attempting to convert a FIDO policy object to a string";
+				logger.error(error, e);
+				throw new RuntimeException(error, e); 
+			}
+		}
+		return policyInfo;
 	}
 
 	public String getApplicationId() {

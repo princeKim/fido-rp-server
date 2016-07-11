@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.client.HttpClientErrorException;
 
 import com.daon.identityx.controller.model.AuthenticationMethod;
 import com.daon.identityx.controller.model.AuthenticatorInfo;
@@ -50,6 +51,7 @@ import com.daon.identityx.controller.model.CreateTransactionAuthRequest;
 import com.daon.identityx.controller.model.DeleteAccountResponse;
 import com.daon.identityx.controller.model.Error;
 import com.daon.identityx.controller.model.GetAuthenticatorResponse;
+import com.daon.identityx.controller.model.GetPolicyResponse;
 import com.daon.identityx.controller.model.ListAuthenticatorsResponse;
 import com.daon.identityx.controller.model.ValidateTransactionAuth;
 import com.daon.identityx.controller.model.ValidateTransactionAuthResponse;
@@ -568,6 +570,34 @@ public class SimpleController {
 			anAudit.setCreatedDTM(new Timestamp(System.currentTimeMillis()));
 			this.getAuditRepository().save(anAudit);
 			logger.info("***** Sending response to the request to getAuthenticator - duration: {}ms", (System.currentTimeMillis() - start));
+		}
+	}
+
+	@RequestMapping(value = "policies/{id}", method = RequestMethod.GET, consumes = { "application/json" })
+	@ResponseStatus(HttpStatus.OK)
+	public @ResponseBody GetPolicyResponse getPolicy(@RequestHeader("Session-Id") String sessionId, @PathVariable("id") String id) {
+
+		logger.info("***** Received request to get the policy: {} for session: {} ", id, sessionId);
+		long start = System.currentTimeMillis();
+		Audit anAudit = new Audit(AuditAction.GET_POLICY);
+		try {
+			Session session = this.validateSession(sessionId);
+			Account account = this.getAccountRepository().findById(session.getAccountId());
+			anAudit.setAccountId(account.getId());
+			GetPolicyResponse res = new GetPolicyResponse();
+			if (id.equalsIgnoreCase("reg")) {
+				res.setPolicyInfo(getIdentityXServices().getRegistrationPolicyInfo());
+			} else if (id.equalsIgnoreCase("auth")) {
+				res.setPolicyInfo(getIdentityXServices().getAuthenticationPolicyInfo());
+			} else {
+				throw new HttpClientErrorException(HttpStatus.NOT_FOUND, "Policy " + id);
+			}
+			return res;
+		} finally {
+			anAudit.setDuration(System.currentTimeMillis() - start);
+			anAudit.setCreatedDTM(new Timestamp(System.currentTimeMillis()));
+			this.getAuditRepository().save(anAudit);
+			logger.info("***** Sending response to the request to getPolicy - duration: {}ms", (System.currentTimeMillis() - start));
 		}
 	}
 

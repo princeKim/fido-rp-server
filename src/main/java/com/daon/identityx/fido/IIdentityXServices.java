@@ -17,6 +17,7 @@
 package com.daon.identityx.fido;
 
 import com.daon.identityx.controller.model.AuthenticatorInfo;
+import com.daon.identityx.controller.model.PolicyInfo;
 import com.daon.identityx.rest.model.pojo.AuthenticationRequest;
 import com.daon.identityx.rest.model.pojo.FIDOFacets;
 import com.daon.identityx.rest.model.pojo.RegistrationChallenge;
@@ -28,6 +29,18 @@ import com.daon.identityx.rest.model.pojo.RegistrationChallenge;
  *
  */
 public interface IIdentityXServices {
+
+	/**
+	 * Retrieves the registration policy information.
+	 * @return
+	 */
+	public PolicyInfo getRegistrationPolicyInfo();
+
+	/**
+	 * Retrieves the authentication policy information.
+	 * @return
+	 */
+	public PolicyInfo getAuthenticationPolicyInfo();
 
 	/***
 	 * Create the FIDO registration request for the user
