@@ -21,6 +21,8 @@ import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.util.Arrays;
 
+import javax.servlet.http.HttpServletResponse;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,6 +110,21 @@ public class SimpleController {
 
 		logger.error("An exception occurred while attempting to process the request.  Exception: " + ex.getError());
 		return ex.getError();
+	}
+
+	/**
+	 * The a web method throws an exception with a http status, then we controller will pass this detail
+	 * back to the client.
+	 * 
+	 * @param ex
+	 * @return
+	 */
+	@ExceptionHandler(HttpClientErrorException.class)
+	@ResponseBody
+	public Error handleHttpExceptions(HttpClientErrorException ex, HttpServletResponse response) {
+		logger.error("An unexpected exception occurred while attempting to process the request. Exception: " + ex.getMessage());
+		response.setStatus(ex.getStatusCode().value());
+		return new Error(ex.getStatusCode().value(), ex.getStatusText());
 	}
 
 	/***
