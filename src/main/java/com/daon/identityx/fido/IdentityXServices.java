@@ -108,8 +108,8 @@ public class IdentityXServices implements IIdentityXServices {
 	
 	private TenantRepoFactory tenantRepoFactory;
 	private Application application;
-	private Policy regPolicy;
-	private Policy authPolicy;
+	private String regPolicyHref;
+	private String authPolicyHref;
 	private ObjectMapper objectMapper = new ObjectMapper();
 
 	private final Map<String, AuthenticatorType> authenticatorTypesCache = new Hashtable<>();
@@ -149,9 +149,9 @@ public class IdentityXServices implements IIdentityXServices {
 		}
 
 		try {
-			logger.info("Attempting to find the registration policy policy: {}", this.getRegPolicyId());
-			Policy aPolicy = this.getPolicy(this.getRegPolicyId());
-			this.setRegPolicy(aPolicy);
+			logger.info("Attempting to find the registration policy: {}", this.getRegPolicyId());
+			Policy aPolicy = this.findPolicy(getRegPolicyId());
+			this.setRegPolicyHref(aPolicy.getHref());
 			logger.info("Found the registration policy.");
 		} catch (IdxRestException ex) {
 			String error = "An exception occurred while attempting to find the registration policy: " + this.getRegPolicyId()
@@ -162,8 +162,8 @@ public class IdentityXServices implements IIdentityXServices {
 
 		try {
 			logger.info("Attempting to find the authentication policy: {}", this.getAuthPolicyId());
-			Policy aPolicy = this.getPolicy(this.getAuthPolicyId());
-			this.setAuthPolicy(aPolicy);
+			Policy aPolicy = this.findPolicy(getAuthPolicyId());
+			this.setAuthPolicyHref(aPolicy.getHref());
 			logger.info("Found the authentication policy.");
 		} catch (IdxRestException ex) {
 			String error = "An exception occurred while attempting to find the authentication policy: " + this.getAuthPolicyId()
@@ -410,7 +410,7 @@ public class IdentityXServices implements IIdentityXServices {
 
 		try {
 			AuthenticationRequest request = new AuthenticationRequest();
-			request.setPolicy(this.getAuthPolicy());
+			request.setPolicy(new Policy(this.getAuthPolicyHref()));
 			request.setApplication(this.getApplication());
 			request.setDescription("Test transaction");
 			request.setType(FIDO_AUTHENTICATION_TYPE);
@@ -449,7 +449,7 @@ public class IdentityXServices implements IIdentityXServices {
 				throw new RuntimeException(error);
 			}
 			AuthenticationRequest request = new AuthenticationRequest();
-			request.setPolicy(this.getAuthPolicy());
+			request.setPolicy(new Policy(this.getAuthPolicyHref()));
 			request.setApplication(this.getApplication());
 			request.setDescription("Test transaction");
 			request.setType(FIDO_AUTHENTICATION_TYPE);
@@ -621,12 +621,24 @@ public class IdentityXServices implements IIdentityXServices {
 
 	@Override
 	public PolicyInfo getRegistrationPolicyInfo() {
-		return this.convert(getRegPolicy());
+		try {
+			return this.convert(getPolicy(getRegPolicyHref()));
+		} catch (IdxRestException ex) {
+			String error = "An exception occurred while attempting to retrieve the registration policy.  Exception: " + ex.getMessage();
+			logger.error(error, ex);
+			throw new RuntimeException(error, ex);
+		}
 	}
 
 	@Override
 	public PolicyInfo getAuthenticationPolicyInfo() {
-		return this.convert(getAuthPolicy());
+		try {
+			return this.convert(getPolicy(getAuthPolicyHref()));
+		} catch (IdxRestException ex) {
+			String error = "An exception occurred while attempting to retrieve the authentication policy.  Exception: " + ex.getMessage();
+			logger.error(error, ex);
+			throw new RuntimeException(error, ex);
+		}
 	}
 
 
@@ -655,16 +667,28 @@ public class IdentityXServices implements IIdentityXServices {
 	}
 
 	/***
+	 * Uses the specified policyHref to get the policy as not all content will 
+	 * be provided in the list operation. For instance, the fido policy itself will 
+	 * not be present unless the policy is retrieved in a GET operation.
+	 * 
+	 * @param policyHref
+	 * @return
+	 * @throws IdxRestException
+	 */
+	protected Policy getPolicy(String policyHref) throws IdxRestException {
+		PolicyRepository policyRepo = this.getTenantRepoFactory().getPolicyRepo();
+		return policyRepo.get(policyHref);
+	}
+
+	/***
 	 * Find the policy within IdentityX with the name supplied and which is part of the "application".
-	 * Uses an PolicyRepository and performs a "list" operation. This unique identifier is then used
-	 * to get the policy as not all content will be provided in the list operation. For instance, the
-	 * fido policy itself will not be present unless the policy is retrieved in a GET operation.
+	 * Uses an PolicyRepository and performs a "list" operation.
 	 * 
 	 * @param aPolicyId
 	 * @return
 	 * @throws IdxRestException
 	 */
-	protected Policy getPolicy(String aPolicyId) throws IdxRestException {
+	protected Policy findPolicy(String aPolicyId) throws IdxRestException {
 
 		PolicyQueryHolder holder = new PolicyQueryHolder();
 		holder.getSearchSpec().setPolicyId(aPolicyId);
@@ -674,7 +698,7 @@ public class IdentityXServices implements IIdentityXServices {
 		case 0:
 			throw new RuntimeException("Could not find a policy with the PolicyId: " + aPolicyId);
 		case 1:
-			return policyRepo.get(policyCollection.getItems()[0].getHref());
+			return policyCollection.getItems()[0];
 		default:
 			throw new RuntimeException("There is more than one policy with the name: " + aPolicyId);
 		}
@@ -692,7 +716,7 @@ public class IdentityXServices implements IIdentityXServices {
 		RegistrationChallengeRepository regChallengeRepository = this.getTenantRepoFactory().getRegistrationChallengeRepo();
 		RegistrationChallenge regChallenge = new RegistrationChallenge();
 		regChallenge.setRegistration(reg);
-		regChallenge.setPolicy(this.getRegPolicy());
+		regChallenge.setPolicy(new Policy(this.getRegPolicyHref()));
 		regChallenge = regChallengeRepository.create(regChallenge);
 		logger.debug("Added a registration challenge for Registration with registrationId: {}, - regChallengeId: {}", reg.getRegistrationId(), regChallenge.getId());
 		return regChallenge;
@@ -992,20 +1016,20 @@ public class IdentityXServices implements IIdentityXServices {
 		this.application = application;
 	}
 
-	public Policy getRegPolicy() {
-		return regPolicy;
+	public String getRegPolicyHref() {
+		return regPolicyHref;
 	}
 
-	public void setRegPolicy(Policy regPolicy) {
-		this.regPolicy = regPolicy;
+	public void setRegPolicyHref(String regPolicyHref) {
+		this.regPolicyHref = regPolicyHref;
 	}
 
-	public Policy getAuthPolicy() {
-		return authPolicy;
+	public String getAuthPolicyHref() {
+		return authPolicyHref;
 	}
 
-	public void setAuthPolicy(Policy authPolicy) {
-		this.authPolicy = authPolicy;
+	public void setAuthPolicyHref(String authPolicyHref) {
+		this.authPolicyHref = authPolicyHref;
 	}
 
 	public Application getApplication() {
