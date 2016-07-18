@@ -150,7 +150,7 @@ public class IdentityXServices implements IIdentityXServices {
 
 		try {
 			logger.info("Attempting to find the registration policy policy: {}", this.getRegPolicyId());
-			Policy aPolicy = this.findPolicy(this.getRegPolicyId());
+			Policy aPolicy = this.getPolicy(this.getRegPolicyId());
 			this.setRegPolicy(aPolicy);
 			logger.info("Found the registration policy.");
 		} catch (IdxRestException ex) {
@@ -162,7 +162,7 @@ public class IdentityXServices implements IIdentityXServices {
 
 		try {
 			logger.info("Attempting to find the authentication policy: {}", this.getAuthPolicyId());
-			Policy aPolicy = this.findPolicy(this.getAuthPolicyId());
+			Policy aPolicy = this.getPolicy(this.getAuthPolicyId());
 			this.setAuthPolicy(aPolicy);
 			logger.info("Found the authentication policy.");
 		} catch (IdxRestException ex) {
@@ -656,13 +656,15 @@ public class IdentityXServices implements IIdentityXServices {
 
 	/***
 	 * Find the policy within IdentityX with the name supplied and which is part of the "application".
-	 * Uses an PolicyRepository and performs a "list" operation.
+	 * Uses an PolicyRepository and performs a "list" operation. This unique identifier is then used
+	 * to get the policy as not all content will be provided in the list operation. For instance, the
+	 * fido policy itself will not be present unless the policy is retrieved in a GET operation.
 	 * 
 	 * @param aPolicyId
 	 * @return
 	 * @throws IdxRestException
 	 */
-	protected Policy findPolicy(String aPolicyId) throws IdxRestException {
+	protected Policy getPolicy(String aPolicyId) throws IdxRestException {
 
 		PolicyQueryHolder holder = new PolicyQueryHolder();
 		holder.getSearchSpec().setPolicyId(aPolicyId);
@@ -672,7 +674,7 @@ public class IdentityXServices implements IIdentityXServices {
 		case 0:
 			throw new RuntimeException("Could not find a policy with the PolicyId: " + aPolicyId);
 		case 1:
-			return policyCollection.getItems()[0];
+			return policyRepo.get(policyCollection.getItems()[0].getHref());
 		default:
 			throw new RuntimeException("There is more than one policy with the name: " + aPolicyId);
 		}
