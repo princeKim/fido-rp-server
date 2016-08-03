@@ -582,7 +582,15 @@ public class IdentityXServices implements IIdentityXServices {
 	 */
 	@Override
 	public FIDOFacets getFidoFacets() {
-		return this.getApplication().getFidoFacets();
+		Application app;
+		try {
+			app = this.findApplication();
+		} catch (IdxRestException e) {
+			String error = "Application could not be found";
+			logger.error(error);
+			throw new RuntimeException(error);
+		}
+		return app.getFidoFacets();
 	}
 
 	
