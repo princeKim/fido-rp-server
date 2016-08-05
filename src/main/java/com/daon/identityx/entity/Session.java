@@ -23,6 +23,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
 import org.hibernate.annotations.GenericGenerator;
+import org.springframework.beans.factory.annotation.Value;
 
 /***
  * This class represents a session with the app.
@@ -34,7 +35,7 @@ import org.hibernate.annotations.GenericGenerator;
 public class Session {
 
 	public static final long DEFAULT_SESSION_PERIOD = 1000*900;
-	
+		
     @Id
 	@GeneratedValue(generator="idGenerator")
 	@GenericGenerator(name="idGenerator", strategy="com.daon.identityx.utils.IdGenerator")
@@ -43,10 +44,10 @@ public class Session {
     private Timestamp createdDTM;
     private Timestamp expiringDTM;
 
-    public Session(Account user) {
+    public Session(Account user, long sessionPeriod) {
     	this.accountId = user.getId();
     	this.createdDTM = new Timestamp(System.currentTimeMillis());
-    	this.expiringDTM = new Timestamp(System.currentTimeMillis() + DEFAULT_SESSION_PERIOD);
+    	this.expiringDTM = new Timestamp(System.currentTimeMillis() + sessionPeriod);
     }
     
     public Session() {

@@ -26,6 +26,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -93,6 +94,9 @@ public class SimpleController {
 	private SessionRepository sessionRepository;
 	@Autowired
 	private IIdentityXServices identityXServices;
+
+	@Value("${fido.session_period:900000}")
+	private long sessionPeriod;
 
 	private SecureRandom random;
 
@@ -201,7 +205,7 @@ public class SimpleController {
 		try {
 
 			newAccount = this.getAccountRepository().save(newAccount);
-			Session aSession = new Session(newAccount);
+			Session aSession = new Session(newAccount, sessionPeriod);
 			aSession = this.getSessionRepository().save(aSession);
 
 			CreateAccountResponse createAccountResponse = new CreateAccountResponse();
@@ -740,7 +744,7 @@ public class SimpleController {
 	 * @return
 	 */
 	protected CreateSessionResponse createSession(Account account, AuthenticationMethod authMethod) {
-		Session session = new Session(account);
+		Session session = new Session(account, sessionPeriod);
 		this.getSessionRepository().save(session);
 		CreateSessionResponse response = new CreateSessionResponse();
 		response.setSessionId(session.getId());
