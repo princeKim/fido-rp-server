@@ -1,6 +1,5 @@
 #FIDO UAF Relying Party Server
 
-## Purpose
 This is a sample FIDO UAF relying party server application written in Java which uses IdentityX ([https://www.daon.com/identityX](https://www.daon.com/identityx))  to perform FIDO UAF operations.  It demonstrates how to integrate with IdentityX and use FIDO UAF Clients and Authenticators.
 
 There is an associated FIDO UAF Relying Party Android App ([https://github.com/daoninc/fido-android-rp-app](https://github.com/daoninc/fido-android-rp-app)) which demonstrates how to interact with FIDO UAF Clients and Authenticators on Android. 
